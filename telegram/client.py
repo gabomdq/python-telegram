@@ -31,7 +31,8 @@ class Telegram(object):
                  application_version: str = VERSION,
                  system_version: str = 'unknown',
                  system_language_code: str = 'en',
-                 login: bool = False) -> None:
+                 login: bool = False,
+                 td_verbosity = 2) -> None:
         """
         Args:
             api_id - ID of your app (https://my.telegram.org/apps/)
@@ -74,11 +75,11 @@ class Telegram(object):
         self.worker = worker(queue=self._workers_queue)
 
         self._results: Dict[str, AsyncResult] = {}
-        self._message_handlers: List[Callable] = []
-        self._update_handlers: List[Callable] = []
+        self._handlers: List[Callable] = []
 
         self._tdjson = TDJson(
             library_path=library_path,
+            verbosity=td_verbosity
         )
         self._run()
 
@@ -208,7 +209,7 @@ class Telegram(object):
         }
         return self._send_data(data)
 
-    def call_method(self, method_name: str, params: Optional[Dict[str, Any]] = None):
+    def call_method(self, method_name: str, params: Optional[Dict[str, Any]] = None) -> AsyncResult:
         """
         Use this method to call any other method of the tdlib
 
@@ -263,13 +264,12 @@ class Telegram(object):
         return async_result
 
     def _run_handlers(self, update: Dict[Any, Any]) -> None:
-        if update.get('@type') == 'updateNewMessage':
-            for handler in self._message_handlers:
-                self._workers_queue.put((handler, update))
+        for handler in self._handlers:
+            self._workers_queue.put((handler, update))
 
-    def add_message_handler(self, func: Callable) -> None:
-        if func not in self._message_handlers:
-            self._message_handlers.append(func)
+    def add_handler(self, func: Callable) -> None:
+        if func not in self._handlers:
+            self._handlers.append(func)
 
     def _send_data(self, data: dict, result_id: str = None) -> AsyncResult:
         if '@extra' not in data:

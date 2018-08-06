@@ -29,7 +29,8 @@ def _get_tdjson_lib_path() -> str:
 
 
 class TDJson(object):
-    def __init__(self, library_path: Optional[str] = None) -> None:
+    def __init__(self, library_path: Optional[str] = None, verbosity = 2) -> None:
+        self.verbosity = verbosity
         if library_path is None:
             library_path = _get_tdjson_lib_path()
         logger.info(f'Using shared library "{library_path}"')
@@ -74,7 +75,7 @@ class TDJson(object):
         self._td_set_log_verbosity_level.restype = None
         self._td_set_log_verbosity_level.argtypes = [c_int]
 
-        self._td_set_log_verbosity_level(2)
+        self._td_set_log_verbosity_level(self.verbosity)
 
         fatal_error_callback_type = CFUNCTYPE(None, c_char_p)
 
